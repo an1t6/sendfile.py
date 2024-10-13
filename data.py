@@ -27,7 +27,7 @@ def manage_cacheserver(file_num, log):
     global CACHE_TOTAL_FILE, CACHE_TOTAL_TIME
     if file_num in FILES:
         file_data = FILES[file_num]
-        send_time = file_data / 2000  # 데이터 서버 -> 캐시 서버 전송 시간
+        send_time = file_data / 2000  
         CACHE_TOTAL_FILE += 1
         CACHE_TOTAL_TIME += send_time
         
@@ -41,7 +41,7 @@ def manage_clinet(file_num, log):
     global CLIENT_TOTAL_FILE, CLIENT_TOTAL_TIME
     if file_num in FILES:
         file_data = FILES[file_num]
-        send_time = file_data / 3000  # 데이터 서버 -> 클라이언트 전송 시간
+        send_time = file_data / 3000  
         CLIENT_TOTAL_FILE += 1
         CLIENT_TOTAL_TIME += send_time
         
@@ -58,7 +58,7 @@ def run_dataserver(client_socket, address, log):
             if not request:
                 break  
             log.info(f"{request} 파일 요청")
-            if request.startswith("Cache"): #Cacheserver에서 'Cache -' 형식으로 요청을 받으면서 Cacheserver와 주고받음
+            if request.startswith("Cache"):
                 file_num = request.split(" - ")[1]  
                 response = manage_cacheserver(file_num, log)
             else:
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((HOST, PORT))
     server_socket.listen(5)
-    print("데이터 서버 실행")
+    print("데이터 서버 실행 중")
     
     while True:
         client_socket, address = server_socket.accept()

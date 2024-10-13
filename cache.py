@@ -1,5 +1,5 @@
-import time  # 시간 측정을 위해 추가
 import random
+import time 
 import logging
 import socket
 import threading
@@ -7,7 +7,7 @@ import os
 
 HOST = 'localhost'
 DATA_PORT = 8000
-MAX_SIZE = 200 * 100
+MAX_SIZE = 200 * 1024
 CACHE1, CACHE2 = {}, {}
 RESULT1, RESULT2 = 0, 0
 TOTAL_FILES1, TOTAL_FIELS2 = 0, 0 
@@ -48,17 +48,17 @@ def fetch_file(file_data, log, cache_name):
 
 def prefetch(log1, log2):
     global RESULT1, RESULT2
-    file_num = list(range(1, 1000)) 
+    file_num = list(range(1, 10001)) 
     random.shuffle(file_num) 
 
     while file_num:
         file_data = str(file_num.pop())
         if RESULT1 + int(file_data) <= MAX_SIZE:
-            fetch_file(file_data, log1, 'CACHE1')  # 데이터 서버로 파일 요청
-            CACHE1[file_data] = True  # 프리패치된 파일을 CACHE1에 저장
+            fetch_file(file_data, log1, 'CACHE1') 
+            CACHE1[file_data] = True  
         elif RESULT2 + int(file_data) <= MAX_SIZE:
-            fetch_file(file_data, log2, 'CACHE2')  # 데이터 서버로 파일 요청
-            CACHE2[file_data] = True  # 프리패치된 파일을 CACHE2에 저장
+            fetch_file(file_data, log2, 'CACHE2')  
+            CACHE2[file_data] = True 
     log1.info(f"[CACHE1] 저장됨. 현재 크기: {RESULT1}KB")
     log2.info(f"[CACHE2] 저장됨. 현재 크기: {RESULT2}KB")
 
@@ -71,11 +71,11 @@ def manage_client(client_socket, log, cache, cache_name, other_cache):
             if not request:
                 continue
             if request in cache:
-                start_time = time.time()  # 전송 시작 시간 기록
+                start_time = time.time()
                 send_time = int(request) / 1000
                 client_socket.sendall(f"전송 완료".encode('utf-8'))
-                end_time = time.time()  # 전송 종료 시간 기록
-                duration = end_time - start_time  # 전송 소요 시간 계산
+                end_time = time.time() 
+                duration = end_time - start_time 
                 
                 with lock:
                     if cache_name == 'CACHE1':
@@ -108,7 +108,7 @@ def run_cacheserver(port, log, cache, cache_name, other_cache):
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((HOST, port))
     server_socket.listen(5)
-    print(f"{cache_name} 실행")
+    print(f"{cache_name} 실행 중")
     try:
         while True:
             client_socket, _ = server_socket.accept()
@@ -121,7 +121,7 @@ def main():
     log1 = set_logging('Cache1.txt')
     log2 = set_logging('Cache2.txt')
     prefetch(log1, log2)
-    threading.Thread(target=run_cacheserver, args=(8001, log1, CACHE1, 'CACHE1', CACHE2)).start()  # cache 1,2를 스레드로 실행
+    threading.Thread(target=run_cacheserver, args=(8001, log1, CACHE1, 'CACHE1', CACHE2)).start()
     threading.Thread(target=run_cacheserver, args=(8002, log2, CACHE2, 'CACHE2', CACHE1)).start()
 
 if __name__ == "__main__":
