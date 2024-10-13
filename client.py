@@ -1,3 +1,4 @@
+import time  # 전송 시간을 측정하기 위해 추가
 import random
 import logging
 import socket
@@ -43,20 +44,20 @@ def connect_server(file_num, port, log):
                 else:
                     transfer_time = int(file_num) / 1000  # 캐시 서버 -> 클라이언트로 전송 시간 계산
                 log.info(f"[{channel}] ㅣ 파일 {file_num} ㅣ 크기 {file_num}KB ㅣ {response} ㅣ 전송 시간 {int(transfer_time * 1000)}ms ㅣ")
-                return "전송 완료", response
+                return "전송 완료", response, int(file_num), transfer_time
             elif "not found" in response:
                 log.info(f"[{channel}] ㅣ 파일 {file_num} ㅣ 크기 {file_num}KB ㅣ {response} ㅣ")
-                return "not found", response
+                return "not found", response, 0, 0
             else:
                 if port == DATA_PORT:
                     transfer_time = int(file_num) / 3000  # 데이터 서버 -> 클라이언트로 전송 시간 계산
                 else:
                     transfer_time = int(file_num) / 1000  # 캐시 서버 -> 클라이언트로 전송 시간 계산
                 log.info(f"[{channel}] ㅣ 파일 {file_num} ㅣ 크기 {file_num}KB ㅣ 전송 완료  ㅣ 전송 시간 {int(transfer_time * 1000)}ms ㅣ")
-                return "전송 완료", response
+                return "전송 완료", response, int(file_num), transfer_time
     except socket.error:
         log.info(f"수신 실패")
-        return None, None
+        return None, None, 0, 0
     
 def quit_server(log):
     for port in CACHE_PORT + [DATA_PORT]:
@@ -71,28 +72,37 @@ def run_client(client_i):
     global TOTAL_RESULT
     log = set_logging(f'client{client_i}.txt')
     overlap = set() # 이전에 요청했던 파일 재요청 방지
-    total = 0 
+    total_files = 0
+    total_size = 0  # 총 전송받은 파일 크기
+    total_time = 0  # 총 전송 시간
 
-    while total < REQUEST_MAX_SIZE:
+    while total_files < REQUEST_MAX_SIZE:
         file_num = str(random.randint(1, 1000))
-        if file_num in overlap: # overlap에 파일이 존재하면 continue
+        if file_num in overlap:  # overlap에 파일이 존재하면 continue
             continue 
         overlap.add(file_num)
         cache_hit = False
         for port in CACHE_PORT:
-            status, response = connect_server(file_num, port, log)
+            status, response, file_size, transfer_time = connect_server(file_num, port, log)
             if status == "전송 완료":
-                total += 1
+                total_files += 1
+                total_size += file_size
+                total_time += transfer_time
                 cache_hit = True
                 break
         if not cache_hit:
-            status, response = connect_server(file_num, DATA_PORT, log)
+            status, response, file_size, transfer_time = connect_server(file_num, DATA_PORT, log)
             if status == "전송 완료":
-                total += 1 
-    log.info(f"전송 성공한 파일 : {total}")
+                total_files += 1
+                total_size += file_size
+                total_time += transfer_time
+
+    avg_speed = total_size / total_time if total_time > 0 else 0  # 평균 전송 속도 계산
+    log.info(f"전송 성공한 파일 수 : {total_files}, 총 전송받은 파일 크기: {total_size}KB, 평균 전송 속도: {avg_speed:.2f}KB/s")
+    
     with lock:
-        TOTAL_RESULT += total
-        if TOTAL_RESULT >= CLIENTS * REQUEST_MAX_SIZE: # 클라이언트 1,2,3,4가 1000개의 파일을 전송했으면 shutdown 신호 전송
+        TOTAL_RESULT += total_files
+        if TOTAL_RESULT >= CLIENTS * REQUEST_MAX_SIZE:  # 클라이언트 1,2,3,4가 1000개의 파일을 전송했으면 shutdown 신호 전송
             print("모든 클라이언트가 파일을 전송받았음으로 각 서버에게 종료 신호를 전송")
             quit_server(log)
 

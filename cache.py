@@ -1,3 +1,4 @@
+import time  # 시간 측정을 위해 추가
 import random
 import logging
 import socket
@@ -9,6 +10,9 @@ DATA_PORT = 8000
 MAX_SIZE = 200 * 100
 CACHE1, CACHE2 = {}, {}
 RESULT1, RESULT2 = 0, 0
+TOTAL_FILES1, TOTAL_FIELS2 = 0, 0 
+TOTAL_SIZE1, TOTAL_SIZE2 = 0, 0  
+TOTAL_TIME1, TOTAL_TIME2 = 0, 0 
 lock = threading.Lock()
 
 def set_logging(file):
@@ -50,7 +54,7 @@ def prefetch(log1, log2):
     while file_num:
         file_data = str(file_num.pop())
         if RESULT1 + int(file_data) <= MAX_SIZE:
-            fetch_file(file_data, log1, 'CACHE1') # 데이터 서버로 파일 요청
+            fetch_file(file_data, log1, 'CACHE1')  # 데이터 서버로 파일 요청
             CACHE1[file_data] = True  # 프리패치된 파일을 CACHE1에 저장
         elif RESULT2 + int(file_data) <= MAX_SIZE:
             fetch_file(file_data, log2, 'CACHE2')  # 데이터 서버로 파일 요청
@@ -60,15 +64,34 @@ def prefetch(log1, log2):
 
 
 def manage_client(client_socket, log, cache, cache_name, other_cache):
+    global TOTAL_FILES1, TOTAL_FIELS2, TOTAL_SIZE1, TOTAL_SIZE2, TOTAL_TIME1, TOTAL_TIME2
     try:
         while True:
-            request = client_socket.recv(1024).decode('utf-8').strip() 
+            request = client_socket.recv(1024).decode('utf-8').strip()
             if not request:
                 continue
-            if request in cache:  
+            if request in cache:
+                start_time = time.time()  # 전송 시작 시간 기록
                 send_time = int(request) / 1000
                 client_socket.sendall(f"전송 완료".encode('utf-8'))
-                log.info(f"[{cache_name}] ㅣ 파일 {request} 전송 완료     ㅣ      소요된 시간 {int(send_time * 1000)}ms     ㅣ")
+                end_time = time.time()  # 전송 종료 시간 기록
+                duration = end_time - start_time  # 전송 소요 시간 계산
+                
+                with lock:
+                    if cache_name == 'CACHE1':
+                        TOTAL_FILES1 += 1
+                        TOTAL_SIZE1 += int(request)
+                        TOTAL_TIME1 += duration
+                        avg_speed = TOTAL_SIZE1 / TOTAL_TIME1 if TOTAL_TIME1 > 0 else 0
+                        log.info(f"[{cache_name}] ㅣ 파일 {request} 전송 완료 ㅣ 소요된 시간 {int(send_time * 1000)}ms ㅣ")
+                        log.info(f"[{cache_name}] 총 전송한 파일 수: {TOTAL_FILES1}, 총 전송한 파일 크기: {TOTAL_SIZE1}KB, 평균 전송 속도: {avg_speed:.2f}KB/s")
+                    elif cache_name == 'CACHE2':
+                        TOTAL_FIELS2 += 1
+                        TOTAL_SIZE2 += int(request)
+                        TOTAL_TIME2 += duration
+                        avg_speed = TOTAL_SIZE2 / TOTAL_TIME2 if TOTAL_TIME2 > 0 else 0
+                        log.info(f"[{cache_name}] ㅣ 파일 {request} 전송 완료 ㅣ 소요된 시간 {int(send_time * 1000)}ms ㅣ")
+                        log.info(f"[{cache_name}] 총 전송한 파일 수: {TOTAL_FIELS2}, 총 전송한 파일 크기: {TOTAL_SIZE2}KB, 평균 전송 속도: {avg_speed:.2f}KB/s")
             else:
                 if request:
                     client_socket.sendall("not found".encode('utf-8'))
@@ -95,8 +118,8 @@ def run_cacheserver(port, log, cache, cache_name, other_cache):
         print(f"{cache_name} 서버가 종료되었습니다.")
 
 def main():
-    log1 = set_logging('CACHE1.txt')
-    log2 = set_logging('CACHE2.txt')
+    log1 = set_logging('Cache1.txt')
+    log2 = set_logging('Cache2.txt')
     prefetch(log1, log2)
     threading.Thread(target=run_cacheserver, args=(8001, log1, CACHE1, 'CACHE1', CACHE2)).start()  # cache 1,2를 스레드로 실행
     threading.Thread(target=run_cacheserver, args=(8002, log2, CACHE2, 'CACHE2', CACHE1)).start()
