@@ -115,7 +115,6 @@ def run_cacheserver(port, log, cache, cache_name, other_cache):
             threading.Thread(target=manage_client, args=(client_socket, log, cache, cache_name, other_cache)).start()
     finally:
         server_socket.close()
-        print(f"{cache_name} 서버가 종료되었습니다.")
 
 def main():
     log1 = set_logging('Cache1.txt')

@@ -66,6 +66,7 @@ def run_dataserver(client_socket, address, log):
             if request == "종료":
                 log.info(f"캐시 서버로 전송된 파일 총 개수: {CACHE_TOTAL_FILE}, 총 전송 시간: {int(CACHE_TOTAL_TIME * 1000)}ms")
                 log.info(f"클라이언트로 전송된 파일 총 개수: {CLIENT_TOTAL_FILE}, 총 전송 시간: {int(CLIENT_TOTAL_TIME * 1000)}ms")
+                print(f"Dataserver 종료")
                 os._exit(0)
             client_socket.sendall(response.encode('utf-8'))
     except socket.error as e:
@@ -75,12 +76,12 @@ def run_dataserver(client_socket, address, log):
 
 if __name__ == "__main__":
     
-    log = set_logging('data.txt')
+    log = set_logging('Data.txt')
     
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((HOST, PORT))
     server_socket.listen(5)
-    print("데이터 서버 실행 중")
+    print("Dataserver 실행 중")
     
     while True:
         client_socket, address = server_socket.accept()

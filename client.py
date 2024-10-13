@@ -70,14 +70,14 @@ def quit_server(log):
             
 def run_client(client_i):
     global TOTAL_RESULT
-    log = set_logging(f'client{client_i}.txt')
+    log = set_logging(f'Client{client_i}.txt')
     overlap = set() 
     total_files = 0
     total_size = 0  
     total_time = 0 
 
     while total_files < REQUEST_MAX_SIZE:
-        file_num = str(random.randint(1, 1000))
+        file_num = str(random.randint(1, 10001))
         if file_num in overlap: 
             continue 
         overlap.add(file_num)
