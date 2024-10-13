@@ -3,7 +3,7 @@ import socket
 import threading
 import os
 
-HOST = 'localhost'
+HOST = 'ec2-43-201-72-135.ap-northeast-2.compute.amazonaws.com'
 PORT = 8000
 FILES = {str(i): i for i in range(1, 10001)}
 CACHE_TOTAL_FILE = 0

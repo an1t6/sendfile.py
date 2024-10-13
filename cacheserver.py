@@ -5,7 +5,7 @@ import socket
 import threading
 import os
 
-HOST = 'localhost'
+HOST = 'ec2-43-201-72-135.ap-northeast-2.compute.amazonaws.com'
 DATA_PORT = 8000
 MAX_SIZE = 200 * 1024
 CACHE1, CACHE2 = {}, {}
