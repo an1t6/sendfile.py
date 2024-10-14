@@ -66,6 +66,7 @@ def prefetch(log1, log2):
 def manage_client(client_socket, log, cache, cache_name, other_cache):
     global TOTAL_FILES1, TOTAL_FIELS2, TOTAL_SIZE1, TOTAL_SIZE2, TOTAL_TIME1, TOTAL_TIME2
     try:
+        print(f"클라이언트가 {cache_name}에 연결되었습니다.")
         while True:
             request = client_socket.recv(1024).decode('utf-8').strip()
             if not request:
@@ -104,24 +105,38 @@ def manage_client(client_socket, log, cache, cache_name, other_cache):
     except socket.error:
         client_socket.close()
 
-def run_cacheserver(port, log, cache, cache_name, other_cache): 
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind((HOST, port))
-    server_socket.listen(5)
-    print(f"{cache_name} 실행 중")
-    try:
-        while True:
-            client_socket, _ = server_socket.accept()
-            threading.Thread(target=manage_client, args=(client_socket, log, cache, cache_name, other_cache)).start()
-    finally:
-        server_socket.close()
-
 def main():
     log1 = set_logging('Cache1.txt')
     log2 = set_logging('Cache2.txt')
     prefetch(log1, log2)
-    threading.Thread(target=run_cacheserver, args=(8001, log1, CACHE1, 'CACHE1', CACHE2)).start()
-    threading.Thread(target=run_cacheserver, args=(8002, log2, CACHE2, 'CACHE2', CACHE1)).start()
+
+    server_socket1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket1.bind((HOST, 8001))
+    server_socket1.listen(5)
+    print("CACHE1 실행 중")
+    
+    server_socket2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket2.bind((HOST, 8002))
+    server_socket2.listen(5)
+    print("CACHE2 실행 중")
+
+    try:
+        # 두 서버에 대해 각각 스레드를 시작하여 클라이언트 관리
+        def accept_clients(server_socket, log, cache, cache_name, other_cache):
+            while True:
+                client_socket, _ = server_socket.accept()
+                threading.Thread(target=manage_client, args=(client_socket, log, cache, cache_name, other_cache)).start()
+
+        threading.Thread(target=accept_clients, args=(server_socket1, log1, CACHE1, 'CACHE1', CACHE2)).start()
+        threading.Thread(target=accept_clients, args=(server_socket2, log2, CACHE2, 'CACHE2', CACHE1)).start()
+
+        # 메인 스레드가 종료되지 않도록 대기
+        while True:
+            pass
+
+    finally:
+        server_socket1.close()
+        server_socket2.close()
 
 if __name__ == "__main__":
     main()

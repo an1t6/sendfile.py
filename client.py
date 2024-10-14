@@ -34,6 +34,7 @@ def connect_server(file_num, port, log):
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.connect((HOST, port))
+            print(f"클라이언트가 {set_channel(port)}에 연결되었습니다.")
             sock.sendall(file_num.encode('utf-8'))
             response = sock.recv(1024).decode('utf-8')
             channel = set_channel(port)
@@ -113,5 +114,6 @@ if __name__ == "__main__":
         client_thread = threading.Thread(target=run_client, args=(i,))
         threads.append(client_thread)
         client_thread.start()
+        print("Client 실행 중")
     for thread in threads:
         thread.join()

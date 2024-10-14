@@ -23,7 +23,7 @@ def set_logging(file):
 def log_print(message):
     logging.info(message)
 
-def manage_cacheserver(file_num, log):
+def manage_cacheserver(file_num, address, log):
     global CACHE_TOTAL_FILE, CACHE_TOTAL_TIME
     if file_num in FILES:
         file_data = FILES[file_num]
@@ -31,13 +31,13 @@ def manage_cacheserver(file_num, log):
         CACHE_TOTAL_FILE += 1
         CACHE_TOTAL_TIME += send_time
         
-        log.info(f"[dataserver] ㅣ 파일 {file_num} ㅣ 크기 {file_data}KB ㅣ 캐시 서버로 전송됨 ㅣ 소요된 시간 {int(send_time * 1000)}ms ㅣ")
+        log.info(f"[dataserver (address)] ㅣ 파일 {file_num} ㅣ 크기 {file_data}KB ㅣ 캐시 서버로 전송됨 ㅣ 소요된 시간 {int(send_time * 1000)}ms ㅣ")
         return f"파일 {file_num} 전송 완료"
     else:
         log.info(f"{file_num}")
         return "not found"
 
-def manage_clinet(file_num, log):
+def manage_clinet(file_num, address, log):
     global CLIENT_TOTAL_FILE, CLIENT_TOTAL_TIME
     if file_num in FILES:
         file_data = FILES[file_num]
@@ -45,7 +45,7 @@ def manage_clinet(file_num, log):
         CLIENT_TOTAL_FILE += 1
         CLIENT_TOTAL_TIME += send_time
         
-        log.info(f"[dataserver] ㅣ 파일 {file_num} ㅣ 크기 {file_data}KB ㅣ 클라이언트로 전송됨 ㅣ 소요된 시간 {int(send_time * 1000)}ms ㅣ")
+        log.info(f"[dataserver (address)] ㅣ 파일 {file_num} ㅣ 크기 {file_data}KB ㅣ 클라이언트로 전송됨 ㅣ 소요된 시간 {int(send_time * 1000)}ms ㅣ")
         return f"파일 {file_num} 전송 완료"
     else:
         log.info(f"{file_num}")
@@ -53,6 +53,7 @@ def manage_clinet(file_num, log):
 
 def run_dataserver(client_socket, address, log):
     try:
+        print(f"클라이언트 {address}와 연결되었습니다.")
         while True:
             request = client_socket.recv(1024).decode('utf-8').strip()
             if not request:
@@ -60,9 +61,9 @@ def run_dataserver(client_socket, address, log):
             log.info(f"{request} 파일 요청")
             if request.startswith("Cache"):
                 file_num = request.split(" - ")[1]  
-                response = manage_cacheserver(file_num, log)
+                response = manage_cacheserver(file_num, address, log)
             else:
-                response = manage_clinet(request, log)
+                response = manage_clinet(request, address, log)
             if request == "종료":
                 log.info(f"캐시 서버로 전송된 파일 총 개수: {CACHE_TOTAL_FILE}, 총 전송 시간: {int(CACHE_TOTAL_TIME * 1000)}ms")
                 log.info(f"클라이언트로 전송된 파일 총 개수: {CLIENT_TOTAL_FILE}, 총 전송 시간: {int(CLIENT_TOTAL_TIME * 1000)}ms")
@@ -70,7 +71,7 @@ def run_dataserver(client_socket, address, log):
                 os._exit(0)
             client_socket.sendall(response.encode('utf-8'))
     except socket.error as e:
-        log.error(f"Socket error: {str(e)}")
+        log.error(f"오류 : {str(e)}")
     finally:
         client_socket.close()  
 
